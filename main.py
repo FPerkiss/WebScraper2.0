@@ -2,8 +2,8 @@
 import requests as r
 from bs4 import BeautifulSoup
 import pandas as pd
-#from numpy import random  # Adding sleep (prevent DDOS)
-#from time import sleep  # Adding sleep (prevent DDOS)
+from numpy import random  # Adding sleep (prevent DDOS)
+from time import sleep  # Adding sleep (prevent DDOS)
 
 # Store the data we want [Location, price, property type, property ID] after scraping/
 prop_location = []
@@ -88,7 +88,7 @@ def exportPanadas():
         "Property ID": prop_id,
     }
     df = pd.DataFrame.from_dict(data)
-    df.to_csv(rf"{panda_location} - {userSelected_type}.csv", encoding="utf-8")
+    df.to_csv(rf"{panda_location} - {userSelected_type} - {userSelected_rooms} bed.csv", encoding="utf-8")
 
 
 urlReload()
@@ -100,6 +100,10 @@ while prop_added < prop_NoOfListings:
     findAdd()
     print(f"{prop_added} / {prop_NoOfListings} WHILE")
 
+    sleeptime = random.uniform(3, 7)
+    print("sleeping for:", sleeptime, "seconds")
+    sleep(sleeptime)
+    print("sleeping is over")
 
 
 exportPanadas()
