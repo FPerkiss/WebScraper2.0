@@ -49,34 +49,41 @@ def urlReload():
     URL = f"https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%{userSelected_location}&maxBedrooms={userSelected_rooms}&minBedrooms={userSelected_rooms}&radius=0.0&index={url_pageNo}&propertyTypes={userSelected_type}&secondaryDisplayPropertyType=detachedshouses&includeSSTC=true&mustHave=&dontShow=&furnishTypes=&keywords="
     page = r.get(URL)
     soup = BeautifulSoup(page.content, "html.parser")
-    url_pageNo = url_pageNo+24
+    url_pageNo = url_pageNo + 24
+
 
 def findAdd():
-    global prop_added
-    global prop_tempCount
-    global prop_NoOfListings
-    # Gets us the number of listings:
-    prop_NoOfListings = soup.find("span", {"class": "searchHeader-resultCount"})
-    prop_NoOfListings = prop_NoOfListings.get_text()
-    prop_NoOfListings = int(prop_NoOfListings.replace(",", ""))
-    print(prop_NoOfListings)
-    prop_search = soup.find(id="propertySearch")
-    container = prop_search.find(id="propertySearch-results-container")
-    search_results = container.find(id="l-searchResults")
-    prop_listings = search_results.find_all('div', class_="l-searchResult is-list")
+    try:
+        global prop_added
+        global prop_tempCount
+        global prop_NoOfListings
+        # Gets us the number of listings:
+        prop_NoOfListings = soup.find("span", {"class": "searchHeader-resultCount"})
+        prop_NoOfListings = prop_NoOfListings.get_text()
+        prop_NoOfListings = int(prop_NoOfListings.replace(",", ""))
+        prop_search = soup.find(id="propertySearch")
+        container = prop_search.find(id="propertySearch-results-container")
+        search_results = container.find(id="l-searchResults")
+        prop_listings = search_results.find_all('div', class_="l-searchResult is-list")
 
-    for prop_listing in prop_listings:
-        soupLocation = prop_listing.find('meta', itemprop="streetAddress")
-        soupPrice = prop_listing.find("div", class_="propertyCard-priceValue")
-        soupID = prop_listing.find('a', "propertyCard-anchor", "id")
-        soupID = soupID.attrs['id']
+        for prop_listing in prop_listings:
+            soupLocation = prop_listing.find('meta', itemprop="streetAddress")
+            soupPrice = prop_listing.find("div", class_="propertyCard-priceValue")
+            soupID = prop_listing.find('a', "propertyCard-anchor", "id")
+            soupID = soupID.attrs['id']
 
-        prop_location.append(soupLocation['content'])
-        prop_price.append(soupPrice.text)
-        prop_id.append(soupID)
-        prop_rooms.append(userSelected_rooms)
-        prop_added = prop_added +1
-        prop_tempCount = prop_tempCount +1
+            if soupID not in prop_id:
+                prop_location.append(soupLocation['content'])
+                prop_price.append(soupPrice.text)
+                prop_id.append(soupID)
+                prop_rooms.append(userSelected_rooms)
+                prop_added = prop_added +1
+                prop_tempCount = prop_tempCount +1
+            else:
+                None
+    except:
+        exportPanadas()
+        print ("Failed (findAdd()) but exported up until failure.")
 
 def exportPanadas():
     # Data export to a .CSV file using the Pandas library.
@@ -93,17 +100,20 @@ def exportPanadas():
 
 urlReload()
 findAdd()
-print(f"{prop_tempCount} / {prop_NoOfListings} START")
 
-while prop_added < prop_NoOfListings:
-    urlReload()
-    findAdd()
-    print(f"{prop_added} / {prop_NoOfListings} WHILE")
-
-    sleeptime = random.uniform(3, 7)
-    print("sleeping for:", sleeptime, "seconds")
-    sleep(sleeptime)
-    print("sleeping is over")
+try:
+    while prop_added < prop_NoOfListings:
+        urlReload()
+        findAdd()
+        print(f"{prop_added} / {prop_NoOfListings}")
+        print (f"url: {url_pageNo}")
+        sleeptime = random.uniform(3, 7)
+        print("sleeping for:", sleeptime, "seconds")
+        sleep(sleeptime)
+        print("sleeping is over")
+except:
+    exportPanadas()
+    print("Failed (while()) but exported up until failure.")
 
 
 exportPanadas()
