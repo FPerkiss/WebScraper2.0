@@ -97,23 +97,23 @@ def exportPanadas():
     df = pd.DataFrame.from_dict(data)
     df.to_csv(rf"{panda_location} - {userSelected_type} - {userSelected_rooms} bed.csv", encoding="utf-8")
 
-
 urlReload()
 findAdd()
 
-try:
-    while prop_added < prop_NoOfListings:
-        urlReload()
-        findAdd()
-        print(f"{prop_added} / {prop_NoOfListings}")
-        print (f"url: {url_pageNo}")
-        sleeptime = random.uniform(3, 7)
-        print("sleeping for:", sleeptime, "seconds")
-        sleep(sleeptime)
-        print("sleeping is over")
-except:
-    exportPanadas()
-    print("Failed (while()) but exported up until failure.")
-
+def runNow():
+    try:
+        while prop_added < prop_NoOfListings:
+            urlReload()
+            findAdd()
+            print(f"{prop_added} / {prop_NoOfListings}")
+            print (f"url: {url_pageNo}")
+            sleeptime = random.uniform(3, 7)
+            print("sleeping for:", sleeptime, "seconds")
+            sleep(sleeptime)
+            print("sleeping is over")
+    except:
+        exportPanadas()
+        print("Failed (while()) but exported up until failure.")
+runNow()
 
 exportPanadas()
