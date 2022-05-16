@@ -105,7 +105,7 @@ try:
                     page = r.get(URL)
                     soup = BeautifulSoup(page.content, "html.parser")
                     url_pageNo += 24
-                    sleeptime = 0
+                    sleeptime = random.uniform(5, 7)
 
                     try:
                         prop_NoOfListings = soup.find("span", {"class": "searchHeader-resultCount"})
