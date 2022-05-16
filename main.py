@@ -1,4 +1,5 @@
 # Import stuff to make it all work! [Libraries]
+import warnings
 import requests as r
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -6,30 +7,24 @@ from numpy import random  # Adding sleep (prevent DDOS)
 from time import sleep  # Adding sleep (prevent DDOS)
 
 # Store the data we want [Location, price, property type, property ID] after scraping/
+warnings.filterwarnings("ignore")
 prop_location = []
 prop_price = []
 prop_type = []
 prop_id = []
 prop_rooms = []
 url_pageNo = 0
-prop_NoOfListings = None
+prop_NoOfListings = 24
 prop_listings = None
-prop_added = 0
-prop_tempCount = 0
 
 # User selected variables [No of bedrooms, property type, location]
-userSelected_rooms = None
 userSelected_type = None
-UserSelected_location = None
 
 # User inputs [They select prop type, location and number of bedrooms.]
-print("Please type one of the following 'detached', 'semi-detached', 'terraced', 'flat', 'bungalow', 'park-home':")
-userSelected_type = input()
-userSelected_rooms = int(input("Please enter the amount of bedrooms you have: "))
+property_types = ['detached', 'semi-detached', 'terraced', 'flat', 'bungalow']
 
 # When a place it entered it converts it to a code used on the rightmove website If it does not match then it will trow an error and ask again.
 location_codes = {
-    "kent": "5E61307",
     "dartford": "5E407",
     "sevenoaks": "5E1191",
     "edenbridge": "5E473",
@@ -82,89 +77,81 @@ location_codes = {
     "broadstairs": "5E221",
     "margate": "5E909",
 }
-locationTrue = 0
-while locationTrue == 0:
-    userSelected_location = input("Please enter location: ").lower()
-    panda_location = userSelected_location
-    if userSelected_location in location_codes:
-        userSelected_location = location_codes[userSelected_location]
-        locationTrue = 1
-    else:
-        print("Please try a different location.")
 
-def urlReload():
-    global url_pageNo
-    global URL
-    global soup
-    # This url is used to get the properties with the parameters we want.
-    URL = f"https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%{userSelected_location}&maxBedrooms={userSelected_rooms}&minBedrooms={userSelected_rooms}&radius=0.0&index={url_pageNo}&propertyTypes={userSelected_type}&secondaryDisplayPropertyType=detachedshouses&includeSSTC=true&mustHave=&dontShow=&furnishTypes=&keywords="
-    page = r.get(URL)
-    soup = BeautifulSoup(page.content, "html.parser")
-    url_pageNo = url_pageNo + 24
+panda_location = ""
 
 
-def findAdd():
-    try:
-        global prop_added
-        global prop_tempCount
-        global prop_NoOfListings
-        # Gets us the number of listings:
-        prop_NoOfListings = soup.find("span", {"class": "searchHeader-resultCount"})
-        prop_NoOfListings = prop_NoOfListings.get_text()
-        prop_NoOfListings = int(prop_NoOfListings.replace(",", ""))
-        prop_search = soup.find(id="propertySearch")
-        container = prop_search.find(id="propertySearch-results-container")
-        search_results = container.find(id="l-searchResults")
-        prop_listings = search_results.find_all('div', class_="l-searchResult is-list")
-
-        for prop_listing in prop_listings:
-            soupLocation = prop_listing.find('meta', itemprop="streetAddress")
-            soupPrice = prop_listing.find("div", class_="propertyCard-priceValue")
-            soupID = prop_listing.find('a', "propertyCard-anchor", "id")
-            soupID = soupID.attrs['id']
-
-            if soupID not in prop_id:
-                prop_location.append(soupLocation['content'])
-                prop_price.append(soupPrice.text)
-                prop_id.append(soupID)
-                prop_rooms.append(userSelected_rooms)
-                prop_added = prop_added +1
-                prop_tempCount = prop_tempCount +1
-            else:
-                None
-    except:
-        exportPanadas()
-        print ("Failed (findAdd()) but exported up until failure.")
-
-def exportPanadas():
-    # Data export to a .CSV file using the Pandas library.
-    data = {
+data = {
         "Location": panda_location,
         "Price": prop_price,
         "Type": userSelected_type,
         "rooms": prop_rooms,
         "Property ID": prop_id,
     }
-    df = pd.DataFrame.from_dict(data)
-    df.to_csv(rf"{panda_location} - {userSelected_type} - {userSelected_rooms} bed.csv", encoding="utf-8")
+no_rooms = [1, 2, 3, 4, 5]
+url_pageNo = 24
+kent_data = pd.DataFrame.from_dict(data)
+try:
+    for i in location_codes:
+        print("---" + i + "---")
+        for j in property_types:
+            print("---" + j + "---")
+            for ii in no_rooms:
+                print("--- " + str(ii) + " room ---")
+                userSelected_rooms = ii
+                while url_pageNo <= 984:
+                    # This url is used to get the properties with the parameters we want.
+                    URL = f"https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%{location_codes[i]}&maxBedrooms={ii}&minBedrooms={ii}&radius=1.0&index={url_pageNo}&propertyTypes={j}&secondaryDisplayPropertyType=detachedshouses&includeSSTC=true&mustHave=&dontShow=&furnishTypes=&keywords="
+                    page = r.get(URL)
+                    soup = BeautifulSoup(page.content, "html.parser")
+                    url_pageNo += 24
+                    sleeptime = 0
 
-urlReload()
-findAdd()
+                    try:
+                        prop_NoOfListings = soup.find("span", {"class": "searchHeader-resultCount"})
+                        prop_NoOfListings = prop_NoOfListings.get_text()
+                        prop_NoOfListings = int(prop_NoOfListings.replace(",", ""))
 
-def runNow():
-    try:
-        while prop_added < prop_NoOfListings:
-            urlReload()
-            findAdd()
-            print(f"{prop_added} / {prop_NoOfListings}")
-            print (f"url: {url_pageNo}")
-            sleeptime = random.uniform(3, 7)
-            print("sleeping for:", sleeptime, "seconds")
-            sleep(sleeptime)
-            print("sleeping is over")
-    except:
-        exportPanadas()
-        print("Failed (while()) but exported up until failure.")
-runNow()
+                        if prop_NoOfListings != 0:
+                            prop_search = soup.find(id="propertySearch")
+                            container = prop_search.find(id="propertySearch-results-container")
+                            search_results = container.find(id="l-searchResults")
+                            prop_listings = search_results.find_all('div', class_="l-searchResult is-list")
+                            if prop_listings.__len__() != 0:
+                                for prop_listing in prop_listings:
+                                    soupLocation = prop_listing.find('meta', itemprop="streetAddress")
+                                    soupPrice = prop_listing.find("div", class_="propertyCard-priceValue")
+                                    soupID = prop_listing.find('a', "propertyCard-anchor", "id")
+                                    soupID = soupID.attrs['id']
 
-exportPanadas()
+                                    prop_price.append(soupPrice.text)
+                                    prop_id.append(soupID)
+
+                                sleep(sleeptime)
+                                placeholder = kent_data.shape[0]
+                                for x in prop_id:
+                                    y = prop_id.index(x)
+                                    new_entry = {"Location": i, "Price": prop_price[y], "Type": j, "rooms": ii, "Property ID": x}
+                                    kent_data = kent_data.append(new_entry, ignore_index=True)
+                                print(str(kent_data.shape[0]-placeholder) + " entries found")
+                                prop_id.clear()
+                                prop_price.clear()
+                            else:
+                                print("no entries")
+                                url_pageNo = 24
+                                sleep(sleeptime)
+                                break
+                        else:
+                            print("no entries")
+                            url_pageNo = 24
+                            sleep(sleeptime)
+                            break
+                    except:
+                        break
+            url_pageNo = 24
+        url_pageNo = 24
+except:
+    kent_data.to_csv(r"Kent_Test_Data.csv", encoding="utf-8")
+
+print(kent_data)
+kent_data.to_csv(r"Kent_Test_Data.csv", encoding="utf-8")
